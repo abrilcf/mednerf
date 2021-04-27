@@ -1,5 +1,8 @@
+# MedNERF
+Adapting NERFs for use in medical imaging.
 
-# Step 1: Setup virtualenv
+## Generating a video
+### Step 1: Setup virtualenv
 
 
     python3 -m venv env
@@ -7,10 +10,10 @@
     pip3 install -r requirements.txt
 
 
-# Step 2: Download dataset
+### Step 2: Download dataset
 Download dataset [here](https://wiki.cancerimagingarchive.net/pages/viewpage.action?pageId=80969771) into `data` subdirectory of this repository.
 
-# Step 3: Generate data
+### Step 3: Generate data
 
 
     python3 preprocess/main.py
@@ -18,16 +21,16 @@ Download dataset [here](https://wiki.cancerimagingarchive.net/pages/viewpage.act
 
 This will output 3 pngs, each a max projection on one of the axes, into an `out` folder.
 
-# Step 4: pixel-nerf download
+### Step 4: pixel-nerf download
 Clone pixel-nerf repo into subdirectory:
 
 
     git clone https://github.com/sxyu/pixel-nerf.git
 
-# Step 5: pixel-nerf setup 
+### Step 5: pixel-nerf setup 
 Follow setup instructions in pixel-nerf repo's README and download pre-trained weights.
 
-# Step 6: Run pixelnerf
+### Step 6: Run pixelnerf
 
 
     . ~/miniconda3/bin/activate
