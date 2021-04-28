@@ -22,10 +22,14 @@ Download dataset [here](https://wiki.cancerimagingarchive.net/pages/viewpage.act
 This will output 3 pngs, each a max projection on one of the axes, into an `out` folder.
 
 ### Step 4: pixel-nerf download
-Clone pixel-nerf repo into subdirectory:
+Initialise pixel-nerf submodule:
 
 
-    git clone https://github.com/sxyu/pixel-nerf.git
+    git submodule init
+    git submodule update
+
+
+This repo is located [here](https://github.com/jonathanfrawley/pixel-nerf)
 
 ### Step 5: pixel-nerf setup 
 Follow setup instructions in pixel-nerf repo's README and download pre-trained weights.
