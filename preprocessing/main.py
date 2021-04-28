@@ -36,7 +36,7 @@ for axis in range(3):
     n = resize(n, (128, 128))
     n[n<0.3] = 0
     skimage.io.imsave(f'out/{axis}.png', ((1.0 - n) * 255).astype(np.uint8))
-    skimage.io.imsave(f'out/{axis}-normalize.png', ((1.0 - n) * 255).astype(np.uint8))
+    skimage.io.imsave(f'out/{axis}_normalize.png', ((1.0 - n) * 255).astype(np.uint8))
     #print(max_im.shape)
     #axs[axis].imshow(max_im)
 #plt.show()
