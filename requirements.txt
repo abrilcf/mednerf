@@ -2,3 +2,5 @@ matplotlib
 numpy
 scikit-image
 pydicom
+gdcm
+pylibjpeg-libjpeg
