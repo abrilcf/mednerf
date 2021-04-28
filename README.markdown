@@ -16,7 +16,7 @@ Download dataset [here](https://wiki.cancerimagingarchive.net/pages/viewpage.act
 ### Step 3: Generate data
 
 
-    python3 preprocess/main.py
+    python3 preprocessing/main.py
 
 
 This will output 3 pngs, each a max projection on one of the axes, into an `out` folder.
