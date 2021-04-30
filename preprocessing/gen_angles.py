@@ -100,7 +100,7 @@ axs[axis].imshow(max_im, cmap="gray")
 
 axis_1 = 2
 axis_2 = 0
-angle_delta = 30
+angle_delta = 60
 angle = 0.0
 idx = 0
 while angle < 360:
