@@ -2,6 +2,7 @@
 
 This repository contains official code for the paper
 [GRAF: Generative Radiance Fields for 3D-Aware Image Synthesis](https://avg.is.tuebingen.mpg.de/publications/schwarz2020neurips).
+
 ... with modifications for DRR (Digitally Reconstructed Radiographs).
 
 ## Test on DRR data
@@ -25,7 +26,7 @@ Please refer to the official repository instructions for further evaluation opti
 ## Train on DRR data
 
 ### Data
-You can find all DRR on ncc: `/projects/cgw/medical`. Here is a description of the folders:
+You can find all DRR & real xrays on ncc: `/projects/cgw/medical`. Here is a description of the folders:
 
 An <em>instance</em> comprehends 72 DRRs (each at 5 degrees) from a 360 degree rotation of a real CT scan.
 
@@ -33,9 +34,19 @@ An <em>instance</em> comprehends 72 DRRs (each at 5 degrees) from a 360 degree r
 
 `chest_xrays` all images of the 20 chest instances (.png).
 
-`head_neck_xrays` all images of the 20 head & neck instances (.png)
+`head_neck_xrays` all images of the 20 head & neck instances (.png, res. 128x128)
 
-`knee_xrays` all images of the 5 knee instances (.png)
+`knee_xrays` all images of the 5 knee instances (.png, res. 128x128)
+
+So far experiments have been made on these last three folders.
+
+
+The following folders correspond to real xrays (not used yet).
+(TODO: Condition a GRAF on real xrays at inference time).
+
+`real_head_xrays` Single-real head xrays (.png, res. 128x128)
+
+`real_knee_xrays` Single-real knee xrays (.png, res. 128x128)
 
 `MURA` contains the [Stanford's musculoskeletal radiographs dataset](https://stanfordmlgroup.github.io/competitions/mura/) (This is for further testing).
 
