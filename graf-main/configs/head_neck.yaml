@@ -1,0 +1,16 @@
+expname: head_neck_all_360
+data:
+  datadir: /projects/cgw/medical/head_neck_xrays
+  type: drr
+  imsize: 128
+  white_bkgd: False
+  radius: 9.5,10.5
+  near: 7.5
+  far: 12.5
+  fov: 10.
+  umin: 0 # 0 deg
+  umax: 1. # 360 deg
+  vmin: 0.32898992833716556 # 70 deg
+  vmax: 0.45642212862617093   # 85 deg
+training:
+  nworkers: 0
