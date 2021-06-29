@@ -26,6 +26,7 @@ Please refer to the official repository instructions for further evaluation opti
 
 ### Data
 You can find all DRR on ncc: `/projects/cgw/medical`. Here is a description of the folders:
+
 An <em>instance</em> comprehends 72 DRRs (each at 5 degrees) from a 360 degree rotation of a real CT scan.
 
 `xrays` contains instances for each of the categories: 20 for chest, 20 for head & neck, 5 for knee. (2D posed images (.png) with their camera info (.txt)).
