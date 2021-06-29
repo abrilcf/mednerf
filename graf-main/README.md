@@ -1,8 +1,50 @@
-# GRAF
+# GRAF - MEDNERF
 
-<div style="text-align: center">
-<img src="animations/carla_256.gif" width="512"/><br>
-</div>
+This repository contains official code for the paper
+[GRAF: Generative Radiance Fields for 3D-Aware Image Synthesis](https://avg.is.tuebingen.mpg.de/publications/schwarz2020neurips).
+... with modifications for DRR (Digitally Reconstructed Radiographs).
+
+## Test on DRR data
+Three GRAF models were trained for each category: chest, head & neck, knee. Refer to the following links to download the respective weights. Weights correspond to 48+ hs of training. Create a folder named `results/` under the main `graf-main/` folder and unzip the weights folder inside. 
+
+Download [chest_all_360](https://drive.google.com/file/d/1XyfGewsoOJZ-mLGBUe8ORdhXul2IWdAf/view?usp=sharing).
+
+Download [head_neck_all_360](https://drive.google.com/file/d/1uYRuFhZzotmbypNGovMKP1Oh1R52B_kQ/view?usp=sharing).
+
+Download [knee_all_360](https://drive.google.com/file/d/1AZYoIzk4GBLCF_lCIl518RDNX0j9nMx_/view?usp=sharing).
+
+You can test a model via: 
+```
+python eval.py configs/CONFIG.yaml --rotation_elevation --shape_appearance
+```
+where you replace CONFIG.yaml with one of the config files in `configs/` (chest.yaml / head_neck.yaml / knee.yaml).
+
+Results will be saved under the same folder as the corresponding weights.
+Please refer to the official repository instructions for further evaluation options (found below).
+
+## Train on DRR data
+
+### Data
+You can find all DRR on ncc: `/projects/cgw/medical`. Here is a description of the folders:
+An <em>instance</em> comprehends 72 DRRs (each at 5 degrees) from a 360 degree rotation of a real CT scan.
+
+`xrays` contains instances for each of the categories: 20 for chest, 20 for head & neck, 5 for knee. (2D posed images (.png) with their camera info (.txt)).
+
+`chest_xrays` all images of the 20 chest instances (.png).
+
+`head_neck_xrays` all images of the 20 head & neck instances (.png)
+
+`knee_xrays` all images of the 5 knee instances (.png)
+
+`MURA` contains the [Stanford's musculoskeletal radiographs dataset](https://stanfordmlgroup.github.io/competitions/mura/) (This is for further testing).
+
+
+You can train a model from scratch via:
+```
+python train.py configs/CONFIG.yaml
+```
+
+# GRAF - Official instructions
 
 This repository contains official code for the paper
 [GRAF: Generative Radiance Fields for 3D-Aware Image Synthesis](https://avg.is.tuebingen.mpg.de/publications/schwarz2020neurips).
