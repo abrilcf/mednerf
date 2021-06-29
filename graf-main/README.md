@@ -41,7 +41,9 @@ An <em>instance</em> comprehends 72 DRRs (each at 5 degrees) from a 360 degree r
 So far experiments have been made on these last three folders.
 
 
+
 The following folders correspond to real xrays (not used yet).
+
 (TODO: Condition a GRAF on real xrays at inference time).
 
 `real_head_xrays` Single-real head xrays (.png, res. 128x128)
