@@ -58,6 +58,26 @@ You can train a model from scratch via:
 python train.py configs/CONFIG.yaml
 ```
 
+## Generate DRR images from CT scans
+To generate xrays images (.png) at different angles from CT scans use the script `generate_drr.py` under the folder `data/`. To run it you need to install the [Plastimatch's build](http://plastimatch.org/). Version 1.9.3 was used.
+
+Then replace `input_path` with the path to the .dcm files or .mha file of the CT. `save_root_path` for the path where you want the xrays images to be saved, and `plasti_path` to the path of the build.
+
+### Overview of input arguments
+Replace the following variables within the file:
+
+- `input_path`: path to the .dcm files or .mha file of the CT.
+- `save_root_path`: path where you want the xrays images to be saved. 
+- `plasti_path`: path of the build. 
+- `multiple_view_mode <True | False>`: generate single xrays from lateral or frontal views or multiple images from a circular rotation around the z axis.
+    If False you need to specify the view with the argument `frontal_dir <True | False>` (false for lateral view).
+    If True you need to specify `num_xrays` to generate equally spaced number of views and `angles` to input the difference between neighboring angles (in  degrees).
+- `preprocessing <True | False>`: set this to True if files are .dcm for Hounsfield Units conversion. Set to False if given file is raw (.mha), for which       you need to provide its path under the variable `raw_input_file`.
+- `detector_size`: pair of values in mm
+- `bg_color`: choose either black or white background.
+- `resolution`: size of the output xrays images.
+
+
 # GRAF - Official instructions
 
 This repository contains official code for the paper
