@@ -61,8 +61,6 @@ python train.py configs/CONFIG.yaml
 ## Generate DRR images from CT scans
 To generate xrays images (.png) at different angles from CT scans use the script `generate_drr.py` under the folder `data/`. To run it you need to install the [Plastimatch's build](http://plastimatch.org/). Version 1.9.3 was used.
 
-Then replace `input_path` with the path to the .dcm files or .mha file of the CT. `save_root_path` for the path where you want the xrays images to be saved, and `plasti_path` to the path of the build.
-
 ### Overview of input arguments
 Replace the following variables within the file:
 
