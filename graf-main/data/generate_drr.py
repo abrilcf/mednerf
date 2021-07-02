@@ -122,8 +122,7 @@ if __name__ == '__main__':
     # Black bg: "0 255", white bg: "255 0"
     bg_color = "0 255"
     # If single view, choose frontal or lateral view
-    frontal_dir = "0 1 0"
-    lateral_dir = "1 0 0"
+    frontal_dir = True
     resolution = "128 128"
     # If multiple view:
     num_xrays = "72"
@@ -164,10 +163,14 @@ if __name__ == '__main__':
                    "-I", raw_input_file, "-O", o_path]
         output = qx(drr_lst)
     else:
+        if frontal_dir:
+            dir = "0 1 0"
+        else:
+            dir = "1 0 0"
         o_path = os.path.join(save_root_path, 'xray')
         drr_lst = [plasti_path+'/plastimatch', "drr", "-t", "pfm",
                    "--algorithm", "uniform", "--gantry-angle", "0",
-                   "-n", lateral_dir, "--sad", sad, "--sid", sid,
+                   "-n", dir, "--sad", sad, "--sid", sid,
                    "--autoscale", "--autoscale-range", bg_color,
                    "-r", resolution, "-o", array2string(center),
                    "-z", detector_size, "-P", "preprocess",
