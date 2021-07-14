@@ -6,8 +6,12 @@ import time
 import copy
 import csv
 import torch
+import math
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 from torchvision.utils import save_image
+from torchvision import transforms
+from PIL import Image
+
 
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 import matplotlib
@@ -21,7 +25,7 @@ sys.path.append('submodules')        # needed to make imports work in GAN_stabil
 
 from graf.gan_training import Evaluator as Evaluator
 from graf.config import get_data, build_models, update_config, get_render_poses
-from graf.utils import count_trainable_parameters, to_phi, to_theta, get_nsamples
+from graf.utils import count_trainable_parameters, to_phi, to_theta, get_nsamples, InfiniteSamplerWrapper
 from graf.transforms import ImgToPatch
 
 from submodules.GAN_stability.gan_training.checkpoints import CheckpointIO
@@ -31,6 +35,17 @@ from submodules.GAN_stability.gan_training.config import (
 )
 
 from external.colmap.filter_points import filter_ply
+
+
+def get_noisy_img(image_size=0):
+    ops = []
+    if image_size > 0:
+        ops.append(transforms.Resize(image_size))
+        ops.extend(
+            [transforms.ToTensor(),
+             transforms.Normalize((0.5), (0.5)),
+             transforms.Lambda(lambda x : x + torch.randn_like(x))])
+    return transforms.Compose(ops)
 
 
 if __name__ == '__main__':
@@ -44,6 +59,7 @@ if __name__ == '__main__':
     parser.add_argument('--shape_appearance', action='store_true', help='Create grid image showing shape/appearance variation.')
     parser.add_argument('--pretrained', action='store_true', help='Load pretrained model.')
     parser.add_argument('--reconstruction', action='store_true', help='Generate images and run COLMAP for 3D reconstruction.')
+    parser.add_argument('--real_xray', type=str, default='None', help='Path to conditional xray image')
 
     args, unknown = parser.parse_known_args()
     config = load_config(args.config, 'configs/default.yaml')
@@ -57,7 +73,7 @@ if __name__ == '__main__':
         config['expname'] = '%s_%s' % (config['data']['type'], config['data']['imsize'])
         out_dir = os.path.join(config['training']['outdir'], config['expname'] + '_from_pretrained')
     checkpoint_dir = path.join(out_dir, 'chkpts')
-    eval_dir = os.path.join(out_dir, 'eval')
+    eval_dir = os.path.join(out_dir, 'eval-xray')
     os.makedirs(eval_dir, exist_ok=True)
     fid_kid = int(args.fid_kid)
 
@@ -82,12 +98,12 @@ if __name__ == '__main__':
     
     val_dataset = train_dataset                 # evaluate on training dataset for GANs
     if args.fid_kid:
-        val_loader = torch.utils.data.DataLoader(
+        val_loader = iter(torch.utils.data.DataLoader(
                 val_dataset,
                 batch_size=batch_size,
                 num_workers=config['training']['nworkers'],
-                shuffle=True, pin_memory=False, sampler=None, drop_last=False   # enable shuffle for fid/kid computation
-        )
+                shuffle=False, pin_memory=False, sampler=InfiniteSamplerWrapper(val_dataset), drop_last=False 
+        ))
 
     # Create models
     generator, _ = build_models(config, disc=False)
@@ -194,7 +210,7 @@ if __name__ == '__main__':
         render_radius = config['data']['radius']
         if isinstance(render_radius, str):  # use maximum radius
             render_radius = float(render_radius.split(',')[1])
-
+        
         # compute render poses
         def get_render_poses_rotation_elevation(N_poses=float('inf')):
             """Compute equidistant render poses varying azimuth and polar angle, respectively."""
@@ -213,7 +229,13 @@ if __name__ == '__main__':
 
             return {'rotation': render_poses_rotation, 'elevation': render_poses_elevation}
 
-        z = zdist.sample((N_samples,))
+        if args.real_xray != 'None':
+            to_latent = get_noisy_img(int(math.sqrt(config['z_dist']['dim'])))
+            xray_img = Image.open(args.real_xray)
+            noisy_img = to_latent(xray_img)
+            z = torch.unsqueeze(torch.flatten(noisy_img), 0)
+        else:
+            z = zdist.sample((N_samples,))
 
         for name, poses in get_render_poses_rotation_elevation(N_poses).items():
             outpath = os.path.join(eval_dir, '{}/'.format(name))
