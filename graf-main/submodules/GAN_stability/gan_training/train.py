@@ -4,7 +4,21 @@ from torch.nn import functional as F
 import torch.utils.data
 import torch.utils.data.distributed
 from torch import autograd
+from . import lpips
+percept = lpips.PerceptualLoss(model='net-lin', net='vgg', use_gpu=True)
 
+
+
+def crop_image_by_part(image, part):
+    hw = image.shape[2]//2
+    if part==0:
+        return image[:,:,:hw,:hw]
+    if part==1:
+        return image[:,:,:hw,hw:]
+    if part==2:
+        return image[:,:,hw:,:hw]
+    if part==3:
+        return image[:,:,hw:,hw:]
 
 class Trainer(object):
     def __init__(self, generator, discriminator, g_optimizer, d_optimizer,
@@ -27,13 +41,15 @@ class Trainer(object):
         self.g_optimizer.zero_grad()
 
         x_fake = self.generator(z, y)
+        y = torch.zeros_like(y)
         d_fake = self.discriminator(x_fake, y)
+#        gloss = -d_fake.mean()
         gloss = self.compute_loss(d_fake, 1)
         gloss.backward()
 
         self.g_optimizer.step()
 
-        return gloss.item()
+        return gloss
 
     def discriminator_trainstep(self, x_real, y, z):
         toggle_grad(self.generator, False)
@@ -43,10 +59,13 @@ class Trainer(object):
         self.d_optimizer.zero_grad()
 
         # On real data
+        y = torch.ones_like(y)
         x_real.requires_grad_()
 
-        d_real = self.discriminator(x_real, y)
+        d_real, [rec_all, rec_small, rec_part], part, data = self.discriminator(x_real, y)
         dloss_real = self.compute_loss(d_real, 1)
+        rec_loss = self.compute_recon_loss(rec_all, rec_small, rec_part, part, data)
+        dloss_real += rec_loss
 
         if self.reg_type == 'real' or self.reg_type == 'real_fake':
             dloss_real.backward(retain_graph=True)
@@ -60,6 +79,7 @@ class Trainer(object):
             x_fake = self.generator(z, y)
 
         x_fake.requires_grad_()
+        y = torch.zeros_like(y)
         d_fake = self.discriminator(x_fake, y)
         dloss_fake = self.compute_loss(d_fake, 0)
 
@@ -88,6 +108,12 @@ class Trainer(object):
             reg = torch.tensor(0.)
 
         return dloss.item(), reg.item()
+
+    def compute_recon_loss(self, rec_all, rec_small, rec_part, part, data):
+        err = percept( rec_all, F.interpolate(data, rec_all.shape[2]) ).sum() +\
+        percept( rec_small, F.interpolate(data, rec_small.shape[2]) ).sum() +\
+        percept( rec_part, F.interpolate(crop_image_by_part(data, part), rec_part.shape[2]) ).sum()
+        return err
 
     def compute_loss(self, d_outs, target):
 
