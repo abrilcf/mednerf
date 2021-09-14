@@ -102,12 +102,11 @@ class SimpleDecoder(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, nc=3, ndf=64, imsize=64, hflip=False):
+    def __init__(self, nc=3, ndf=64, imsize=64):
         super(Discriminator, self).__init__()
         self.nc = nc
         assert(imsize==32 or imsize==64 or imsize==128)
         self.im_size = imsize
-        self.hflip = hflip
 
         nfc_multi = {4:16, 8:16, 16:8, 32:4, 64:2, 128:1, 256:0.5, 512:0.25, 1024:0.125}
         nfc = {}
@@ -121,53 +120,36 @@ class Discriminator(nn.Module):
         self.down_4  = DownBlockComp(nfc[512], nfc[256])
         self.down_8  = DownBlockComp(nfc[256], nfc[128])
 
-        self.rf_big = nn.Sequential(
-                            conv2d(nfc[128] , nfc[32], 1, 1, 0, bias=False),
-                            batchNorm2d(nfc[32]), nn.LeakyReLU(0.2, inplace=True),
-                            conv2d(nfc[32], 1, 4, 1, 0, bias=False))
+        sequence = [conv2d(nfc[128] , nfc[32], 1, 1, 0, bias=False),
+                       batchNorm2d(nfc[32]),
+                       nn.LeakyReLU(0.2, inplace=True)]
+
+        self.dag_heads = []
+        for i in range(4):
+            head = sequence + [conv2d(nfc[32], 1, 4, 1, 0, bias=False)]
+            self.dag_heads.append(nn.Sequential(*head))
+        self.dag_heads = nn.ModuleList(self.dag_heads)
 
         self.se_2_16 = SEBlock(nfc[512], nfc[256])
         self.se_4_32 = SEBlock(nfc[256], nfc[128])
         
-        self.down_from_small = nn.Sequential( 
-                                            conv2d(nc, nfc[512], 3, 1, 1, bias=False), 
-                                            nn.LeakyReLU(0.2, inplace=True),
-                                            DownBlock(nfc[512],  nfc[256]))
-                                            
-        self.rf_small = conv2d(nfc[256], 1, 4, 1, 0, bias=False)
-
         self.decoder_big = SimpleDecoder(nfc[128], nc)
         self.decoder_part = SimpleDecoder(nfc[256], nc)
-        self.decoder_small = SimpleDecoder(nfc[256], nc)
 
     def forward(self, input, y=None):
-        input = input[:, :self.nc]
-        input = input.view(-1, self.im_size, self.im_size, self.nc).permute(0, 3, 1, 2)
-
-        if self.hflip:      # Randomly flip input horizontally
-            input_flipped = input.flip(3)
-            mask = torch.randint(0, 2, (len(input),1, 1, 1)).bool().expand(-1, *input.shape[1:])
-            input = torch.where(mask, input, input_flipped)
-
-        if type(input) is not list:
-            input = [F.interpolate(input, size=self.im_size),
-                     F.interpolate(input, size=(input.size(-1)//2))]
-
-        feat_2 = self.down_from_big(input[0])    
+        feat_2 = self.down_from_big(input)    
         feat_4 = self.down_4(feat_2)
         feat_16 = self.se_2_16(feat_2, feat_4)
         
         feat_8 = self.down_8(feat_16)
         feat_last = self.se_4_32(feat_4, feat_8)
 
-        rf_0 = self.rf_big(feat_last).view(-1)
-
-        feat_small = self.down_from_small(input[1])
-        rf_1 = self.rf_small(feat_small).view(-1)
+        dag_outputs = []
+        for i in range(4):
+            dag_outputs.append(self.dag_heads[i](feat_last).view(-1))
 
         if y[0] == 1:    
             rec_img_big = self.decoder_big(feat_last)
-            rec_img_small = self.decoder_small(feat_small)
 
             part = random.randint(0, 3)
             rec_img_part = None
@@ -180,6 +162,6 @@ class Discriminator(nn.Module):
             if part==3:
                 rec_img_part = self.decoder_part(feat_16[:,:,8:,8:])
 
-            return torch.cat([rf_0, rf_1]).mean(), [rec_img_big, rec_img_small, rec_img_part], part, input[0]
+            return dag_outputs, [rec_img_big, rec_img_part], part, input
 
-        return torch.cat([rf_0, rf_1]).mean()
+        return dag_outputs
