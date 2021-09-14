@@ -5,9 +5,19 @@ import torch.utils.data
 import torch.utils.data.distributed
 from torch import autograd
 from . import lpips
+from .utils import augmenting_data
 percept = lpips.PerceptualLoss(model='net-lin', net='vgg', use_gpu=True)
 
 
+''' rotation degree '''
+rotations = [0, 90, 180, 270]
+fliprot   = ['noflip', 'left-right', 'bottom-up', 'rotate90']
+cropping  = ['nocrop', 'corner1', 'corner2', 'corner3', 'corner4']
+augment_list = {
+                 'rotation': rotations,
+                 'fliprot' : fliprot,
+                 'cropping' : cropping
+               }
 
 def crop_image_by_part(image, part):
     hw = image.shape[2]//2
@@ -42,14 +52,28 @@ class Trainer(object):
 
         x_fake = self.generator(z, y)
         y = torch.zeros_like(y)
-        d_fake = self.discriminator(x_fake, y)
-#        gloss = -d_fake.mean()
-        gloss = self.compute_loss(d_fake, 1)
-        gloss.backward()
+        GI_loss = 0
+        GA_loss = 0
+
+        x_fake = x_fake[:, :3]
+        x_fake = x_fake.view(-1, 32,32, 3).permute(0, 3, 1, 2)
+        x_fake = augmenting_data(x_fake, self.aug_policy, augment_list[self.aug_policy])
+
+        for i in range(len(x_fake)):
+            outputs = self.discriminator(x_fake[i], y)
+            # On original data
+            if i == 0:
+                GI_loss = -outputs[i].mean()
+            else:
+                # On augmented data
+                GA_loss += -outputs[i].mean()
+
+        G_loss = GI_loss + 0.2/3. * GA_loss
+        G_loss.backward()
 
         self.g_optimizer.step()
 
-        return gloss
+        return G_loss
 
     def discriminator_trainstep(self, x_real, y, z):
         toggle_grad(self.generator, False)
@@ -60,28 +84,53 @@ class Trainer(object):
 
         # On real data
         y = torch.ones_like(y)
-        x_real.requires_grad_()
+        DI_real_loss = 0
+        DA_real_loss = 0
+        x_real = x_real.view(-1, 32, 32, 3).permute(0, 3, 1, 2)
+        x_real = augmenting_data(x_real, self.aug_policy, augment_list[self.aug_policy])
 
-        d_real, [rec_all, rec_small, rec_part], part, data = self.discriminator(x_real, y)
-        dloss_real = self.compute_loss(d_real, 1)
-        rec_loss = self.compute_recon_loss(rec_all, rec_small, rec_part, part, data)
-        dloss_real += rec_loss
+        for i in range(4):
+            x_real[i].requires_grad_()
+            real_outputs, [rec_all, rec_part], part, data = self.discriminator(x_real[i], y)
+            d_pred = real_outputs[i].mean()
+            d_loss = self.compute_hinge_loss(-d_pred)
+            rec_loss = self.compute_recon_loss(rec_all, rec_part, part, data)
+            if i == 0:
+                # On original data
+                DI_real_loss = d_loss
+                DI_real_loss += rec_loss
+            else:
+                # On augmented data
+                DA_real_loss += d_loss
+                DA_real_loss += rec_loss
 
-        if self.reg_type == 'real' or self.reg_type == 'real_fake':
-            dloss_real.backward(retain_graph=True)
-            reg = self.reg_param * compute_grad2(d_real, x_real).mean()
-            reg.backward()
-        else:
-            dloss_real.backward()
+        dloss_real = DI_real_loss + 0.2/3. * DA_real_loss
+
+        dloss_real.backward()
 
         # On fake data
         with torch.no_grad():
             x_fake = self.generator(z, y)
 
-        x_fake.requires_grad_()
         y = torch.zeros_like(y)
-        d_fake = self.discriminator(x_fake, y)
-        dloss_fake = self.compute_loss(d_fake, 0)
+        DI_fake_loss = 0
+        DA_fake_loss = 0
+
+        x_fake = x_fake[:, :3]
+        x_fake = x_fake.view(-1, 32, 32, 3).permute(0, 3, 1, 2)
+        x_fake = augmenting_data(x_fake, self.aug_policy, augment_list[self.aug_policy])
+
+        for j in range(4):
+            x_fake[j].requires_grad_()
+            fake_outputs = self.discriminator(x_fake[j], y)
+            d_pred = fake_outputs[j].mean()
+            d_loss = self.compute_hinge_loss(d_pred)
+            if j == 0:
+                DI_fake_loss = d_loss
+            else:
+                DA_fake_loss += d_loss
+
+        dloss_fake = DI_fake_loss + 0.2/3. * DA_fake_loss
 
         if self.reg_type == 'fake' or self.reg_type == 'real_fake':
             dloss_fake.backward(retain_graph=True)
@@ -90,13 +139,6 @@ class Trainer(object):
         else:
             dloss_fake.backward()
 
-        if self.reg_type == 'wgangp':
-            reg = self.reg_param * self.wgan_gp_reg(x_real, x_fake, y)
-            reg.backward()
-        elif self.reg_type == 'wgangp0':
-            reg = self.reg_param * self.wgan_gp_reg(x_real, x_fake, y, center=0.)
-            reg.backward()
-
         self.d_optimizer.step()
 
         toggle_grad(self.discriminator, False)
@@ -104,16 +146,18 @@ class Trainer(object):
         # Output
         dloss = (dloss_real + dloss_fake)
 
-        if self.reg_type == 'none':
-            reg = torch.tensor(0.)
+        reg = torch.tensor(0.)
 
         return dloss.item(), reg.item()
 
-    def compute_recon_loss(self, rec_all, rec_small, rec_part, part, data):
+    def compute_recon_loss(self, rec_all, rec_part, part, data):
         err = percept( rec_all, F.interpolate(data, rec_all.shape[2]) ).sum() +\
-        percept( rec_small, F.interpolate(data, rec_small.shape[2]) ).sum() +\
-        percept( rec_part, F.interpolate(crop_image_by_part(data, part), rec_part.shape[2]) ).sum()
+              percept( rec_part, F.interpolate(crop_image_by_part(data, part), rec_part.shape[2]) ).sum()
         return err
+    
+    def compute_hinge_loss(self, pred):
+        pred = F.relu(  torch.rand_like(pred) * 0.2 + 0.8 +  pred).mean()
+        return pred.mean()
 
     def compute_loss(self, d_outs, target):
 
