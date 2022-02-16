@@ -57,7 +57,7 @@ Replace the following variables within the file:
 
 ## Acknowledgments
 
-This codebase is heavily based on the [GRAF](https://github.com/autonomousvision/graf) code base.
+This codebase is heavily based on the [GRAF](https://github.com/autonomousvision/graf) code base. We also use the code from [pixel-nerf](https://github.com/sxyu/pixel-nerf) for baseline experiments.
 
 We thank all authors for the wonderful code!
 
