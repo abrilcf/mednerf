@@ -14,7 +14,7 @@ An <em>instance</em> comprehends 72 DRRs (each at 5 degrees) from a 360 degree r
 
 `knee_xrays` all images of the 5 knee instances (.png, res. 128x128)
 
-## Train a model from scratch via
+## Train a model
 Refer to graf-main folder and execute, replacing CONFIG.yaml with knee.yaml or chest.yaml
 ```
 python train.py configs/CONFIG.yaml
