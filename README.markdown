@@ -41,6 +41,8 @@ pixel-nerf/conf/exp/drr.conf
 ## Generate DRR images from CT scans
 To generate xrays images (.png) at different angles from CT scans use the script `generate_drr.py` under the folder `data/`. To run it you need to install the [Plastimatch's build](http://plastimatch.org/). Version 1.9.3 was used.
 
+An updated version of the script has been added (generate_drr_multiple_dirs.py). Use this script to automatically generate the set of DRRs when you have a global folder with multiple folders containing CT scans. The files do not necessarily need to be in the immediate subfolder. You only need to assign the path location of the global folder and the global folder to save the set of DRRs.
+
 ### Overview of input arguments
 Replace the following variables within the file:
 
