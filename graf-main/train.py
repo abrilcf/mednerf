@@ -1,5 +1,6 @@
 import argparse
 import os
+import gc
 from os import path
 import time
 import copy
@@ -117,7 +118,7 @@ if __name__ == '__main__':
     
     # Get model file
     model_file = config['training']['model_file']
-    stats_file = 'stats.p'
+    stats_file = 'stats_00049999.p'
 
     # Logger
     logger = Logger(
@@ -210,7 +211,8 @@ if __name__ == '__main__':
         use_amp=config['training']['use_amp'],
         gan_type=config['training']['gan_type'],
         reg_type=config['training']['reg_type'],
-        reg_param=config['training']['reg_param']
+        reg_param=config['training']['reg_param'],
+        aug_policy=config['training']['aug_policy']
     )
 
     print('it {}: start with LR:\n\td_lr: {}\tg_lr: {}'.format(it, d_optimizer.param_groups[0]['lr'], g_optimizer.param_groups[0]['lr']))
@@ -231,7 +233,7 @@ if __name__ == '__main__':
 
             # Discriminator updates
             z = zdist.sample((batch_size,))
-            dloss, reg = trainer.discriminator_trainstep(rgbs, y=y, z=z)
+            dloss, reg = trainer.discriminator_trainstep(rgbs, y=y, z=z, data_aug=config['data']['augmentation'])
             logger.add('losses', 'discriminator', dloss, it=it)
             logger.add('losses', 'regularizer', reg, it=it)
 
@@ -279,6 +281,7 @@ if __name__ == '__main__':
                 logger.add('validation', 'fid', fid, it=it)
                 logger.add('validation', 'kid', kid, it=it)
                 torch.cuda.empty_cache()
+                gc.collect()
                 # save best model
                 if save_best=='fid' and fid < fid_best:
                     fid_best = fid
@@ -286,12 +289,14 @@ if __name__ == '__main__':
                     checkpoint_io.save('model_best.pt', it=it, epoch_idx=epoch_idx, fid_best=fid_best, kid_best=kid_best)
                     logger.save_stats('stats_best.p')
                     torch.cuda.empty_cache()
+                    gc.collect()
                 elif save_best=='kid' and kid < kid_best:
                     kid_best = kid
                     print('Saving best model...')
                     checkpoint_io.save('model_best.pt', it=it, epoch_idx=epoch_idx, fid_best=fid_best, kid_best=kid_best)
                     logger.save_stats('stats_best.p')
                     torch.cuda.empty_cache()
+                    gc.collect()
 
             # (vi) Create video if necessary
             if ((it+1) % config['training']['video_every']) == 0:
