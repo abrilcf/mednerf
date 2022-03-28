@@ -9,6 +9,7 @@ data:
   radius: 3.4                 # set according to near and far plane
   fov: 90.
   orthographic: False
+  augmentation: True
   umin: 0.                    # 0 deg, convert to degree via 360. * u
   umax: 1.                    # 360 deg, convert to degree via 360. * u
   vmin: 0.                    # 0 deg, convert to degrees via arccos(1 - 2 * v) * 180. / pi
@@ -46,8 +47,8 @@ training:
   use_amp: False               # Use automated mixed precision
   nworkers: 6
   batch_size: 8
-  chunk: 32768                # 1024*32
-  netchunk: 65536             # 1024*64
+  chunk: 65536              # 1024*32
+  netchunk: 131072             # 1024*64
   lr_g: 0.0005
   lr_d: 0.0001
   lr_anneal: 0.5
@@ -56,6 +57,7 @@ training:
   gan_type: standard
   reg_type: real
   reg_param: 10.
+  aug_policy: fliprot         # rotation, fliprot, cropping
   optimizer: rmsprop
   n_test_samples_with_same_shape_code: 4
   take_model_average: true
