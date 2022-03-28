@@ -38,8 +38,8 @@ class Trainer(TrainerBase):
 
         return gloss.item()
 
-    def discriminator_trainstep(self, x_real, y, z):
-        return super(Trainer, self).discriminator_trainstep(x_real, y, z)       # spectral norm raises error for when using amp
+    def discriminator_trainstep(self, x_real, y, z, data_aug):
+        return super(Trainer, self).discriminator_trainstep(x_real, y, z, data_aug)       # spectral norm raises error for when using amp
 
 
 class Evaluator(EvaluatorBase):
@@ -60,10 +60,10 @@ class Evaluator(EvaluatorBase):
 
     def create_samples(self, z, poses=None):
         self.generator.eval()
-
         N_samples = len(z)
         device = self.generator.device
-        z = z.to(device).split(self.batch_size)
+        if self.batch_size > 1:
+            z = z.to(device).split(self.batch_size)
         if poses is None:
             rays = [None] * len(z)
         else:
@@ -72,16 +72,28 @@ class Evaluator(EvaluatorBase):
 
         rgb, disp, acc = [], [], []
         with torch.no_grad():
-            for z_i, rays_i in tqdm(zip(z, rays), total=len(z), desc='Create samples...'):
-                bs = len(z_i)
-                if rays_i is not None:
-                    rays_i = rays_i.permute(1, 0, 2, 3).flatten(1, 2)       # Bx2x(HxW)xC -> 2x(BxHxW)x3
-                rgb_i, disp_i, acc_i, _ = self.generator(z_i, rays=rays_i)
+            if self.batch_size > 1:
+                for z_i, rays_i in tqdm(zip(z, rays), total=len(z), desc='Create samples...'):
+                    bs = len(z_i)
+                    if rays_i is not None:
+                        rays_i = rays_i.permute(1, 0, 2, 3).flatten(1, 2)       # Bx2x(HxW)xC -> 2x(BxHxW)x3
+                    rgb_i, disp_i, acc_i, _ = self.generator(z_i, rays=rays_i)
 
-                reshape = lambda x: x.view(bs, self.generator.H, self.generator.W, x.shape[1]).permute(0, 3, 1, 2)  # (NxHxW)xC -> NxCxHxW
-                rgb.append(reshape(rgb_i).cpu())
-                disp.append(reshape(disp_i).cpu())
-                acc.append(reshape(acc_i).cpu())
+                    reshape = lambda x: x.view(bs, self.generator.H, self.generator.W, x.shape[1]).permute(0, 3, 1, 2)  # (NxHxW)xC -> NxCxHxW
+                    rgb.append(reshape(rgb_i).cpu())
+                    disp.append(reshape(disp_i).cpu())
+                    acc.append(reshape(acc_i).cpu())
+            else:
+                for rays_i in rays:
+                    bs = len(z)
+                    if rays_i is not None:
+                        rays_i = rays_i.permute(1, 0, 2, 3).flatten(1, 2)       # Bx2x(HxW)xC -> 2x(BxHxW)x3
+                    rgb_i, disp_i, acc_i, _ = self.generator(z, rays=rays_i)
+
+                    reshape = lambda x: x.view(bs, self.generator.H, self.generator.W, x.shape[1]).permute(0, 3, 1, 2)  # (NxHxW)xC -> NxCxHxW
+                    rgb.append(reshape(rgb_i).cpu())
+                    disp.append(reshape(disp_i).cpu())
+                    acc.append(reshape(acc_i).cpu())
 
         rgb = torch.cat(rgb)
         disp = torch.cat(disp)
