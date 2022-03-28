@@ -20,19 +20,19 @@ augment_list = {
                }
 
 def crop_image_by_part(image, part):
-    hw = image.shape[2]//2
     if part==0:
-        return image[:,:,:hw,:hw]
+        return image[:,:,:8,:8]
     if part==1:
-        return image[:,:,:hw,hw:]
+        return image[:,:,:8,8:]
     if part==2:
-        return image[:,:,hw:,:hw]
+        return image[:,:,8:,:8]
     if part==3:
-        return image[:,:,hw:,hw:]
+        return image[:,:,8:,8:]
+
 
 class Trainer(object):
     def __init__(self, generator, discriminator, g_optimizer, d_optimizer,
-                 gan_type, reg_type, reg_param):
+                 gan_type, reg_type, reg_param, aug_policy):
         self.generator = generator
         self.discriminator = discriminator
         self.g_optimizer = g_optimizer
@@ -41,6 +41,7 @@ class Trainer(object):
         self.gan_type = gan_type
         self.reg_type = reg_type
         self.reg_param = reg_param
+        self.aug_policy = aug_policy
 
     def generator_trainstep(self, y, z):
         assert(y.size(0) == z.size(0))
@@ -58,13 +59,13 @@ class Trainer(object):
         x_fake = x_fake[:, :3]
         x_fake = x_fake.view(-1, 32,32, 3).permute(0, 3, 1, 2)
         x_fake = augmenting_data(x_fake, self.aug_policy, augment_list[self.aug_policy])
-
+        
         for i in range(len(x_fake)):
             outputs = self.discriminator(x_fake[i], y)
             # On original data
             if i == 0:
                 GI_loss = -outputs[i].mean()
-            else:
+            else:    
                 # On augmented data
                 GA_loss += -outputs[i].mean()
 
@@ -75,7 +76,7 @@ class Trainer(object):
 
         return G_loss
 
-    def discriminator_trainstep(self, x_real, y, z):
+    def discriminator_trainstep(self, x_real, y, z, data_aug):
         toggle_grad(self.generator, False)
         toggle_grad(self.discriminator, True)
         self.generator.train()
@@ -108,6 +109,7 @@ class Trainer(object):
 
         dloss_real.backward()
 
+        
         # On fake data
         with torch.no_grad():
             x_fake = self.generator(z, y)
@@ -154,10 +156,11 @@ class Trainer(object):
         err = percept( rec_all, F.interpolate(data, rec_all.shape[2]) ).sum() +\
               percept( rec_part, F.interpolate(crop_image_by_part(data, part), rec_part.shape[2]) ).sum()
         return err
-    
+
     def compute_hinge_loss(self, pred):
         pred = F.relu(  torch.rand_like(pred) * 0.2 + 0.8 +  pred).mean()
         return pred.mean()
+
 
     def compute_loss(self, d_outs, target):
 
