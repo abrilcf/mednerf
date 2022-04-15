@@ -23,9 +23,14 @@ python train.py configs/CONFIG.yaml
 ## Reconstruction given an X-ray
 After training a model, you can test its capacity to reconstruct 3D-aware CT projections given a single X-ray. 
 
-To execute the reconstruction, please refer to graf-main folde and execute:
+Install ray tune for hyperparameter tuning with:
 ```
-python finetune_xray.py --xray_img_path path_to_xray --save_dir path_to_save_dir --model path_to_trained_model
+pip install "ray[tune]"
+```
+
+To execute the reconstruction, please refer to graf-main folder and execute:
+```
+python finetune_xray.py configs/config-file.yaml --xray_img_path path_to_xray --save_dir path_to_save_dir --model path_to_trained_model
 ```
 (to use ray for finetuning, please change the runtime environment with your configuration).
 
