@@ -253,7 +253,7 @@ search_space = {
             "lambda_nll": tune.grid_search([0.1, 0.2, 0.3])
         }
 
-ray.init(runtime_env={"conda": "/home/abrilcf/anaconda3", "excludes": ["/home/abrilcf/Documents/phd/code/D-graf/D-graf/**", "/home/abrilcf/Documents/phd/code/D-graf/results/**", "/home/abrilcf/Documents/phd/code/D-graf/external/**"], "py_modules": ["/home/abrilcf/Documents/phd/code/D-graf/submodules", "/home/abrilcf/Documents/phd/code/D-graf/graf", "/home/abrilcf/Documents/phd/code/D-graf/submodules/GAN_stability/", "/home/abrilcf/Documents/phd/code/D-graf/configs"]})
+ray.init(runtime_env={"conda": "/home/your-user/anaconda3", "py_modules": ["/home/your-user/mednerf/graf-main/submodules", "/home/your-user/mednerf/graf-main/graf", "/home/your-user/mednerf/graf-main/submodules/GAN_stability/", "/home/your-user/mednerf/graf-main/configs"]})
 
 config_file = load_config(args.config_file, 'configs/default.yaml')
 config_file['data']['fov'] = float(config_file['data']['fov'])
