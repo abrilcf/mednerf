@@ -2,8 +2,40 @@ import numpy as np
 import torch
 import imageio
 import os
-import torch.utils.data as data
+import glob
+from torch.utils import data
+from torch.utils.data import Dataset
+from PIL import Image
 
+
+class  ImageFolder(Dataset):
+    """docstring for ArtDataset"""
+    def __init__(self, root, transform=None):
+        super( ImageFolder, self).__init__()
+        self.root = root
+
+        self.frame = self._parse_frame()
+        self.transform = transform
+
+    def _parse_frame(self):
+        frame = []
+        folders = glob.glob(os.path.join(self.root, '*'))
+        for folder in folders:
+            for f in glob.glob(os.path.join(folder, '*.png')):
+                frame.append(f)
+        return frame
+
+    def __len__(self):
+        return len(self.frame)
+
+    def __getitem__(self, idx):
+        file = self.frame[idx]
+        img = Image.open(file).convert('RGB')
+
+        if self.transform:
+            img = self.transform(img)
+
+        return img
 
 def InfiniteSampler(n):
     """Data sampler"""
