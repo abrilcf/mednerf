@@ -182,7 +182,7 @@ def finetune_xray(config):
     ssim_value = 0.
     psnr_value = 0.
 
-    for iteration in range(1000):
+    for iteration in range(1):
         z_optim.zero_grad()
 
         p = poses[0].unsqueeze(0) \
@@ -228,7 +228,7 @@ def finetune_xray(config):
                 filename = "generated_{}.png".format(iteration)
                 outpath = os.path.join(eval_dir, filename)
                 results = torch.cat([target_xray, xray_pred],0) / 2 + 0.5
-                #vutils.save_image(results, outpath, nrow=1)
+                vutils.save_image(results, outpath, nrow=1)
                 #filename = "interpolate_{}.png".format(iteration)
                 #outpath = os.path.join(eval_dir, filename)
                 #interpolate(z[0], z[1], evaluator, p, outpath)
@@ -247,11 +247,11 @@ device = torch.device("cuda:0")
 
 search_space = {
             "lr": tune.loguniform(1e-4, 1e-1),
-            "b1": tune.grid_search([0., 5e-1]),
-            "lambda_percep": tune.grid_search([0.1, 0.2, 0.3]),
-            "lambda_mse": tune.grid_search([0.1, 0.2, 0.3]),
-            "lambda_nll": tune.grid_search([0.1, 0.2, 0.3])
-        }
+        #    "b1": tune.grid_search([0., 5e-1])}
+        #    "lambda_percep": tune.grid_search([0.1, 0.2, 0.3]),
+         #   "lambda_mse": tune.grid_search([0.1, 0.2, 0.3]),
+          #  "lambda_nll": tune.grid_search([0.1, 0.2, 0.3])}
+        
 
 ray.init(runtime_env={"conda": "/home/your-user/anaconda3", "py_modules": ["/home/your-user/mednerf/graf-main/submodules", "/home/your-user/mednerf/graf-main/graf", "/home/your-user/mednerf/graf-main/submodules/GAN_stability/", "/home/your-user/mednerf/graf-main/configs"]})
 
